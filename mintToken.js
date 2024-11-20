@@ -4,12 +4,11 @@ const {
     mintTo,
     getOrCreateAssociatedTokenAccount,
 } = require('@solana/spl-token')
+const secret = require('./guideSecret.json')
 
-const wallet = web3.Keypair.fromSecretKey(
-    new Uint8Array(bs58.default.decode(process.env.PHANTOM_PRIVATE_KEY))
-)
-// console.log("wallet",wallet);
-const mint = new web3.PublicKey('ZxpD7QQcYnpU1uqF1hKYui4o52xqVXRZDfGrZNGdAFu')
+const wallet = web3.Keypair.fromSecretKey(new Uint8Array(secret))
+
+const mint = new web3.PublicKey('HTxpgCMT1K4NAbXyS6gyBTQbwZHbzsRutmqyZBV5xpPY')
 let main = async () => {
     const connection = new web3.Connection(
         web3.clusterApiUrl('devnet'),

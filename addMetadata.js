@@ -3,16 +3,39 @@ const {
     createCreateMetadataAccountV3Instruction,
 } = require('@metaplex-foundation/mpl-token-metadata')
 const bs58 = require('bs58')
+const secret = require('./guideSecret.json')
 
 // Define the Token Metadata Program ID
 const TOKEN_METADATA_PROGRAM_ID = new web3.PublicKey(
     'metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s'
 )
 
-// Example token mint account public key (replace with your actual mint address)
-const tokenMintAccount = new web3.PublicKey(
-    'DsVSzp9MDvEGj61W8xuUZvJS34N78PBM9UC9tPfYbqN8'
-)
+// Wallet from Phantom private key
+const wallet = web3.Keypair.fromSecretKey(new Uint8Array(secret))
+
+// Function to find the PDA (Program Derived Address) for the metadata account
+const getMetadata = async (mint) => {
+    const [metadataPDA] = await web3.PublicKey.findProgramAddress(
+        [
+            Buffer.from('metadata'),
+            TOKEN_METADATA_PROGRAM_ID.toBuffer(),
+            mint.toBuffer(),
+        ],
+        TOKEN_METADATA_PROGRAM_ID
+    )
+    return metadataPDA
+}
+
+// Metadata for the token
+const metadataData = {
+    name: 'Liberte Unified Dollar Test',
+    symbol: 'LUDT',
+    uri: 'https://ipfs.io/ipfs/QmZMJ2XN7BgTC9pvboggk6Y9f5DxJapPYUTQhFfezwMadg', // Link to JSON metadata file
+    sellerFeeBasisPoints: 0,
+    creators: null,
+    collection: null,
+    uses: null,
+}
 
 // Function to create a metadata account
 const createMetadataAccount = async (
@@ -42,54 +65,50 @@ const createMetadataAccount = async (
     return tx
 }
 
-// Function to find the PDA (Program Derived Address) for the metadata account
-const getMetadata = async (mint) => {
-    return (
-        await web3.PublicKey.findProgramAddress(
-            [
-                Buffer.from('metadata'),
-                TOKEN_METADATA_PROGRAM_ID.toBuffer(),
-                mint.toBuffer(),
-            ],
-            TOKEN_METADATA_PROGRAM_ID
-        )
-    )[0]
+// Function to check if metadata already exists
+const checkMetadataExists = async (connection, metadataPDA) => {
+    const metadataInfo = await connection.getAccountInfo(metadataPDA)
+    if (metadataInfo) {
+        console.log('Metadata already exists for this mint.')
+        return true
+    }
+    return false
 }
-
-// Metadata for the token
-const metadataData = {
-    name: 'Liberte Unified Dollar Test',
-    symbol: 'LUDT',
-    uri: 'https://ipfs.io/ipfs/QmdfXgdxZTv1ax3rH2zwVmR7Lf8oAR19yVxpHGJUS3oiaB', // Link to JSON metadata file
-    sellerFeeBasisPoints: 0,
-    creators: null,
-    collection: null,
-    uses: null,
-}
-
-// Create wallet from Phantom private key
-const wallet = web3.Keypair.fromSecretKey(
-    new Uint8Array(bs58.default.decode(process.env.PHANTOM_PRIVATE_KEY))
-)
 
 // Main function to add metadata to the existing token mint
 const addMetadata = async (mintAddress, connection) => {
-    // Get the metadata account PDA
-    const metadataAccount = await getMetadata(mintAddress)
+    try {
+        console.log('Fetching metadata PDA...')
+        const metadataAccount = await getMetadata(mintAddress)
 
-    // Create the metadata account transaction
-    const tx = await createMetadataAccount(
-        metadataAccount,
-        mintAddress,
-        wallet, // Use the wallet directly
-        metadataData
-    )
+        console.log('Checking if metadata already exists...')
+        const exists = await checkMetadataExists(connection, metadataAccount)
+        if (exists) {
+            console.log('Aborting: Metadata already exists.')
+            return
+        }
 
-    // Send and confirm the transaction
-    const transactionId = await web3.sendAndConfirmTransaction(connection, tx, [
-        wallet,
-    ])
-    console.log('Metadata Added to Token, Transaction ID:', transactionId)
+        console.log('Creating metadata account transaction...')
+        const tx = await createMetadataAccount(
+            metadataAccount,
+            mintAddress,
+            wallet,
+            metadataData
+        )
+
+        console.log('Sending transaction...')
+        const transactionId = await web3.sendAndConfirmTransaction(
+            connection,
+            tx,
+            [wallet]
+        )
+        console.log(
+            'Metadata added successfully. Transaction ID:',
+            transactionId
+        )
+    } catch (err) {
+        console.error('Error adding metadata:', err)
+    }
 }
 
 // Example usage
@@ -100,8 +119,9 @@ const addMetadata = async (mintAddress, connection) => {
     )
 
     const mintAddress = new web3.PublicKey(
-        'ZxpD7QQcYnpU1uqF1hKYui4o52xqVXRZDfGrZNGdAFu'
+        'HTxpgCMT1K4NAbXyS6gyBTQbwZHbzsRutmqyZBV5xpPY' // Replace with your token mint address
     )
 
+    console.log('Starting metadata addition process...')
     await addMetadata(mintAddress, connection)
 })()

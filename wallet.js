@@ -1,7 +1,7 @@
-import { Keypair, LAMPORTS_PER_SOL, Connection } from '@solana/web3.js'
-import * as fs from 'fs'
-import bs58 from 'bs58'
-import dotenv from 'dotenv'
+const { Keypair, LAMPORTS_PER_SOL, Connection } = require('@solana/web3.js')
+const fs = require('fs')
+const bs58 = require('bs58')
+const dotenv = require('dotenv')
 
 //STEP 1 - Connect to Solana Network
 const endpoint =
@@ -12,12 +12,14 @@ dotenv.config()
 
 // Get Phantom wallet's private key from .env
 const phantomPrivateKey = process.env.PHANTOM_PRIVATE_KEY
+console.log(phantomPrivateKey, 'phantomPrivateKey')
+
 if (!phantomPrivateKey) {
     throw new Error('Phantom private key not found in .env')
 }
 
 // Decode the base58 encoded private key
-const privateKeyArray = bs58.decode(phantomPrivateKey)
+const privateKeyArray = bs58.default.decode(phantomPrivateKey)
 const keyPair = Keypair.fromSecretKey(privateKeyArray)
 
 //STEP 2 - Generate a New Solana Wallet
@@ -27,7 +29,7 @@ console.log(
 )
 
 //STEP 3 - Convert Private key to Base58
-const privateKey = bs58.encode(keyPair.secretKey)
+const privateKey = bs58.default.encode(keyPair.secretKey)
 console.log(`Wallet PrivateKey:`, privateKey)
 
 //STEP 4 - Write Wallet Secret Key to a .JSON

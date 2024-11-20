@@ -1,10 +1,11 @@
 const { createMint } = require('@solana/spl-token')
 const web3 = require('@solana/web3.js')
 const bs58 = require('bs58')
+const secret = require('./guideSecret.json')
 
-const wallet = web3.Keypair.fromSecretKey(
-    new Uint8Array(bs58.default.decode(process.env.PHANTOM_PRIVATE_KEY))
-)
+const wallet = web3.Keypair.fromSecretKey(new Uint8Array(secret))
+
+console.log(wallet.publicKey)
 
 console.log('Creating token mint...')
 
